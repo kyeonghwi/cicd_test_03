@@ -1,0 +1,45 @@
+name: auto-deploy with docker.yml
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-job:
+    runs-on: unbuntu-latest
+
+    steps:
+      - name: clone git repository
+        uses: actions/checkout@v5
+
+      - name: install jdk
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+#      - name: copy application.properties
+
+      - name: build jar
+        run: chmod +x ./gradlew && ./gradlew clean build
+
+      - name: build docker image
+        run: docker build -t ${{secrets.DOCKER_USER}}/web-app:latest .
+
+      - name: docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USER}}
+          password: ${{secrets.DOCKER_HUB_ACCESS_TOKEN}}
+
+      - name: dcoker image pull
+        run: docker push ${{secrets.DOCKER_USER}}/web-app:latest
+
+  deploy-job:
+    needs: build-job
+    runs-on: unbuntu-latest
+
+    steps:
+      - name: deploy
+        run: echo "hello world"
